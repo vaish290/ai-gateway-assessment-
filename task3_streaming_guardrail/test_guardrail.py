@@ -42,7 +42,7 @@ async def test_long_text():
     result = "".join(output)
 
     passed = (
-        "[REDACTED_LONG_CANDIDATE]" in result
+        "[REDACTED]" in result
         and long_text not in result
     )
 
@@ -61,7 +61,6 @@ async def test_streaming_latency():
     async def long_stream():
         yield "a" * 10000
 
-        # Simulate the LLM waiting before sending more text
         await asyncio.sleep(0.5)
 
         yield " end"
@@ -114,7 +113,7 @@ async def test_credit_card_boundary():
     result = "".join(output)
 
     complete_card_redacted = (
-        "[REDACTED_CARD]" in result
+        "[REDACTED]" in result
         and "4111 1111 1111 1111" not in result
     )
 
@@ -140,7 +139,6 @@ async def test_all_card_boundaries():
     card = "4111 1111 1111 1111"
     failures = []
 
-    # Test 61 padding lengths around the buffer threshold.
     for padding in range(220, 281):
         text = ("x" * padding) + " " + card + " end"
 
@@ -155,7 +153,6 @@ async def test_all_card_boundaries():
 
         result = "".join(output)
 
-        # None of the card's digit groups should be exposed.
         if "4111" in result:
             failures.append(padding)
 
@@ -181,7 +178,7 @@ async def main():
             "@example",
             ".com now"
         ],
-        "Contact [REDACTED_EMAIL] now"
+        "Contact [REDACTED] now"
     ))
 
     # TEST 2: SSN split across chunks
@@ -192,7 +189,7 @@ async def main():
             "45-",
             "6789."
         ],
-        "SSN: [REDACTED_SSN]."
+        "SSN: [REDACTED]."
     ))
 
     # TEST 3: Credit card split across chunks
@@ -203,7 +200,7 @@ async def main():
             " 1111 ",
             "1111."
         ],
-        "Card: [REDACTED_CARD]."
+        "Card: [REDACTED]."
     ))
 
     # TEST 4: Multiple sensitive values
@@ -213,7 +210,7 @@ async def main():
             "Email: jane@example.com ",
             "SSN: 123-45-6789 "
         ],
-        "Email: [REDACTED_EMAIL] SSN: [REDACTED_SSN] "
+        "Email: [REDACTED] SSN: [REDACTED] "
     ))
 
     # TEST 5: Long text without whitespace

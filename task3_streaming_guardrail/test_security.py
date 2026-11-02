@@ -31,7 +31,6 @@ async def test_partial_card_leak():
     for padding in range(0, 600):
         text = ("hello " * padding) + "Card: " + card + " end"
 
-        # Split the card across multiple chunks
         card_start = text.index(card)
 
         chunks = [
@@ -89,6 +88,29 @@ async def test_partial_email_leak():
     return True
 
 
+async def test_email_at_buffer_boundary():
+    """
+    Test whether an email address crossing the
+    256-character buffer boundary leaks information.
+    """
+
+    chunks = [
+        "a" * 255,
+        "b@example.com",
+        " end"
+    ]
+
+    result = await collect_output(chunks)
+
+    if "b@example.com" in result or "example.com" in result:
+        print("FAIL: Email information leaked at buffer boundary")
+        print("Output ending:", repr(result[-120:]))
+        return False
+
+    print("PASS: Email boundary protection")
+    return True
+
+
 async def test_memory_usage():
     """
     Measure memory usage while processing
@@ -112,7 +134,6 @@ async def test_memory_usage():
 
     print(f"Peak traced memory: {peak / 1024 / 1024:.2f} MB")
 
-    # A generous threshold for this focused test.
     if peak < 10 * 1024 * 1024:
         print("PASS: Memory usage stayed below 10 MB")
         return True
@@ -128,12 +149,16 @@ async def main():
 
     results.append(await test_partial_card_leak())
     results.append(await test_partial_email_leak())
+    results.append(await test_email_at_buffer_boundary())
     results.append(await test_memory_usage())
 
     passed = sum(results)
     total = len(results)
 
     print(f"\n{passed}/{total} security tests passed")
+
+    if passed != total:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
